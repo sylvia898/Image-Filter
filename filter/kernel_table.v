@@ -15,7 +15,7 @@ module kernel_table (
         weight = 8'sd0;
         shift  = 4'd0;
 
-        case (filter_sel)
+        case (filter_select)
             // Identity: 0 0 0 / 0 1 0 / 0 0 0, weights sum to 1 -> shift 0
             2'b00: begin
                 shift = 4'd0;

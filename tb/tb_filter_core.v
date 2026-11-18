@@ -2,15 +2,15 @@
 
 module tb_filter_core;
 
-    reg        clk;
-    reg        resetn;
-    reg        win_start;
-    reg  [7:0] pix;
-    reg        pix_valid;
-    reg  [3:0] k;
-    reg  [1:0] filter_sel;
+    reg clk;
+    reg resetn;
+    reg win_start;
+    reg [7:0] pix;
+    reg pix_valid;
+    reg [3:0] k;
+    reg [1:0] filter_sel;
     wire [7:0] result;
-    wire       result_valid;
+    wire result_valid;
 
     filter_core dut (
         .clk(clk),
@@ -56,8 +56,8 @@ module tb_filter_core;
             @(negedge clk);
             win_start = 1'b0;
             for (i = 0; i < 9; i = i + 1) begin
-                pix       = win[i];
-                k         = i;
+                pix = win[i];
+                k = i;
                 pix_valid = 1'b1;
                 @(negedge clk);
                 pix_valid = 1'b0;
