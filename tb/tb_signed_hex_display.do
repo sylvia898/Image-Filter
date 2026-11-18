@@ -2,7 +2,7 @@
 
 quit -sim
 vlib work
-vlog display/hex_decoder.v display/signed_hex_display.v tb/tb_signed_hex_display.v
+vlog ../display/hex_decoder.v ../display/signed_hex_display.v tb_signed_hex_display.v
 vsim -voptargs="+acc" tb_signed_hex_display
 
 add wave -radix decimal  /tb_signed_hex_display/value

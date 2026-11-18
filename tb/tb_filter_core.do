@@ -2,7 +2,7 @@
 
 quit -sim
 vlib work
-vlog filter/kernel_table.v filter/filter_core.v tb/tb_filter_core.v
+vlog ../filter/kernel_table.v ../filter/filter_core.v tb_filter_core.v
 vsim -voptargs="+acc" tb_filter_core
 
 add wave                  /tb_filter_core/clk
