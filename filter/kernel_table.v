@@ -1,20 +1,17 @@
 // sw 00: filter identity: copies centre pixel so image looks unchanegd
-// switch 00 identity: The original picture, exactly as stored in ROM. It's your baseline: if this looks wrong, the problem is in the ROM, VGA or address logic, not your filter.
-// switch 01 blur: The same picture, slightly softer and fuzzier. Sharp edges become gradual, fine detail and specks are smoothed out, and flat areas look the same. A 3×3 blur is fairly gentle, so flip between 00 and 01 to compare.
-
+// switch 00 identity: The original picture, exactly as stored in ROM. 
+// switch 01 blur: The same picture, slightly softer and fuzzier. Sharp edges become gradual, fine detail and specks are smoothed out, and flat areas look the same
 // kernel_table: combinational lookup (no clock)
 // for selected filter and neighbour k, gives weight to multiply that neighbour by, and shift to apply to final sum 
 
 module kernel_table (
-    input             [1:0] filter_select, // SW[1:0]: 00 identity, 01 blur, 10 Sobel (M2), 11 custom (M2)
-    input             [3:0] k,          // neighbour index 0..8
+    input [1:0] filter_select, // SW[1:0]: 00 identity, 01 blur, 10 Sobel (M2), 11 custom (M2)
+    input [3:0] k,          
     output reg signed [7:0] weight,     // signed weight for neighbour k
-    output reg        [3:0] shift       // arithmetic right shift for the sum
+    output reg [3:0] shift       // arithmetic right shift for the sum
 );
 
     always @(*) begin
-        // Defaults: anything not listed below gets weight 0, shift 0.
-        // Setting every output first also prevents latches.
         weight = 8'sd0;
         shift  = 4'd0;
 
