@@ -1,4 +1,4 @@
-// Turns 9 neighbour pixels into 1 filtered pixel:
+// Turns 9 pixels (1 centre and 8 neighbour pixels) into 1 pixel
 // total = sum of (pixel x weight), then shift right, clamp to 0..255,
 // and pulse result_valid for one clock.
 module filter_core (
@@ -13,9 +13,10 @@ module filter_core (
     output reg result_valid
 );
 
-    // weight for neighbour k, and the shift for the final sum
+    // weight = how much neighbour k counts; shift is for the final sum
+    // changing the weights changes the filter, the hardware stays the same
     wire signed [7:0] weight;
-    wire        [3:0] shift;
+    wire [3:0] shift;
 
     kernel_table kt (
         .filter_select(filter_sel),
@@ -26,26 +27,34 @@ module filter_core (
 
     // add a 0 on top so 255 stays +255 when treated as signed
     wire signed [8:0]  pix_signed = {1'b0, pix};
-    wire signed [16:0] product    = pix_signed * weight;
 
-    // running total (20 bits: big enough for the worst case, 293,760)
+    // step 1, multiply: this neighbour's contribution
+    wire signed [16:0] product = pix_signed * weight;
+
+    // step 2, add: running total of all 9 products
+    // (20 bits: big enough for the worst case, 293,760)
+    // e.g. blur on a flat area of 100: total = 16 x 100 = 1600
     reg signed [19:0] acc;
 
     // 1 for one clock after the 9th pixel has been added
     reg last_added;
 
-    // >>> keeps the sign; shifting right by 4 = divide by 16
+    // step 3, shift: bring brightness back to normal
+    // blur weights add up to 16, so divide by 16: 1600 >>> 4 = 100
+    // a shift is used instead of / because it is almost free in hardware
+    // >>> keeps the sign so negative totals stay negative
     wire signed [19:0] shifted = acc >>> shift;
 
-    // clamp to 0..255
+    // step 4, clamp: a pixel must fit in 8 bits (0..255)
+    // without it, 800 would wrap to 32 (dark) and -10 to 246 (bright)
     reg [7:0] clamped;
 
     always @(*) begin
         clamped = shifted[7:0];
         if (shifted < 20'sd0)
-            clamped = 8'd0;
+            clamped = 8'd0;          // too dark -> black
         else if (shifted > 20'sd255)
-            clamped = 8'd255;
+            clamped = 8'd255;        // too bright -> white
     end
 
     always @(posedge clk) begin
