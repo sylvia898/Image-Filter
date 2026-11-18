@@ -1,5 +1,3 @@
-`timescale 1ns / 1ps
-
 module tb_signed_hex_display;
 
     reg  [7:0] value;
