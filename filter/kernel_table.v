@@ -25,7 +25,7 @@ module kernel_table (
 
             // Blur: 1 2 1 / 2 4 2 / 1 2 1, weights sum to 16 = 2^4 -> shift 4
             2'b01: begin
-                shift = 4'd4;
+                shift = 4'd4; // shifts right by 4 bits which means divide by 16
                 case (k)
                     4'd0, 4'd2, 4'd6, 4'd8: weight = 8'sd1; // corners
                     4'd1, 4'd3, 4'd5, 4'd7: weight = 8'sd2; // edges

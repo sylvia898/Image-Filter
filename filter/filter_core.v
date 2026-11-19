@@ -27,13 +27,11 @@ module filter_core (
     // add a 0 on top so 255 stays +255 when treated as signed
     wire signed [8:0]  pix_signed = {1'b0, pix};
 
-    // 1. multiply: how much does this neighbour matter?
+    // 1. multiply: how much does this neighbour matter
     //    (blur: centre x4, edges x2, corners x1; identity: only centre x1)
     wire signed [16:0] product = pix_signed * weight;
 
     // 2. add: combine the 9 weighted pixels into one number
-    //    (blur on a flat area of 100: 16 x 100 = 1600)
-    //    20 bits fits the worst case, 293,760
     reg signed [19:0] acc;
 
     // 1 for one clock after the 9th pixel has been added
@@ -56,7 +54,9 @@ module filter_core (
             clamped = 8'd255;
     end
 
+    // main part: runs once every clock edge
     always @(posedge clk) begin
+        // reset button held: clear everything
         if (!resetn) begin
             acc <= 20'sd0;
             result <= 8'd0;
@@ -68,10 +68,14 @@ module filter_core (
             result_valid <= 1'b0;
             last_added <= 1'b0;
 
+            // new pixel starting: total back to 0
             if (win_start)
                 acc <= 20'sd0;
+            // a neighbour arrived: add it to the total
             else if (pix_valid) begin
                 acc <= acc + product;
+                // last neighbour? acc updates on this edge,
+                // so wait one clock before using it
                 if (k == 4'd8)
                     last_added <= 1'b1;
             end
