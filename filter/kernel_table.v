@@ -7,12 +7,14 @@
 module kernel_table (
     input [1:0] filter_select, // SW[1:0]: 00 identity, 01 blur, 10 Sobel (M2), 11 custom (M2)
     input [3:0] k,          
-    output reg signed [7:0] weight,     // signed weight for neighbour k
+    output reg signed [7:0] weight,   // normal weight for filters & Gx
+    output reg signed [7:0] weight_y; // Gy, only for Sobel
     output reg [3:0] shift       // arithmetic right shift for the sum
 );
 
     always @(*) begin
         weight = 8'sd0;
+        weight_y = 8'sd0;
         shift  = 4'd0;
 
         case (filter_select)
@@ -35,6 +37,24 @@ module kernel_table (
             end
 
             // 2'b10 Sobel and 2'b11 custom: Milestone 2 (defaults for now)
+            2'b10: begin 
+                shift = 4'd0; // bc sobel weights add up to 0 so nothing scaled up
+                case (k) // Gx: -1 0 1 / -2 0 2 / -1 0 1
+                    4'd0, 4'd6: weight = -8'sd1; 
+                    4'd3: weight = -8'sd2; 
+                    4'd2, 4'd8: weight = 8'sd1; 
+                    4'd5: weight = 8'sd2; 
+                    default: weight = 8'sd0; // middle column unused
+                endcase
+                case(k) // Gy: 1 2 1 / 0 0 0 / -1 -2 -1
+                    4'd0, 4'd2: weight_y = 8'sd1; 
+                    4'd1: weight_y = 8'sd2; 
+                    4'd6, 4'd8: weight_y = -8'sd1; 
+                    4'd7: weight_y = -8'sd2;
+                    default: weight_y = 8'sd0; 
+                endcase
+            end 
+
             default: ;
         endcase
     end
