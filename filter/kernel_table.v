@@ -8,7 +8,7 @@ module kernel_table (
     input [1:0] filter_select, // SW[1:0]: 00 identity, 01 blur, 10 Sobel (M2), 11 custom (M2)
     input [3:0] k,          
     output reg signed [7:0] weight,   // normal weight for filters & Gx
-    output reg signed [7:0] weight_y; // Gy, only for Sobel
+    output reg signed [7:0] weight_y, // Gy, only for Sobel
     output reg [3:0] shift       // arithmetic right shift for the sum
 );
 
