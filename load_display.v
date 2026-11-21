@@ -106,6 +106,10 @@ module pixel_reader(clock, resetn, x, y, rom_address, plot, done);
 				end
 				else x <= x + 1;
 			end
+			else if (state == S_DONE) begin
+				x <= 0;
+				y <= 0;
+			end
 		end
 	
 	end
