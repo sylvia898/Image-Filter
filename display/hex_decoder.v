@@ -1,4 +1,5 @@
 // hex_decoder: turns a 4-bit number (0-F) into the 7 segment signals
+// segment signals that draw that hex digit on a HEX display
 
 module hex_decoder (
     input [3:0] digit,   // the number to show, 0-15
