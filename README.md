@@ -1,3 +1,9 @@
+# FPGA Image Filter
+**Authors:** Sylvia Wang & Ishita Suresh
+
+A hardware-accelerated image convolution implemented in Verilog on the DE1-SoC FPGA board. The system stores multiple 160×120 images in on-chip ROM and processes them sequentially through a fixed-point 3×3 kernel datapath—supporting signed multiply-accumulate, arithmetic bit-shift scaling, clamping, and edge-replicated border handling—before rendering the filtered output live to a VGA monitor. Users can toggle between stored images and preset filters (Original, Gaussian Blur, and Sobel Edge Detection) via onboard switches, or enter custom 3×3 kernel weights and shift values interactively using a PS/2 keyboard with real-time feedback displayed on the 7-segment HEX displays.
+
+
 ## Partner A (Ishita Suresh) Milestone #1 - Image Load and VGA Display
 
 ### Overview
@@ -25,6 +31,5 @@
   * **`S_ADDR`:** state to ask for the colour data.
   * **`S_WAIT`:** state to wait for one clock tick for `image_rom` to read the data.
   * **`S_PLOT`:** sets plot to 1, queue for `VGA_DIsplay` to plot the pixel.
-  * **`S_NEXT`:** increments both x- and y- coordinates of the pixel (next pixel).
-    * I can increment coordinates in a separate always block, along with resetting x and y to zero if the reset button is pressed.
+  * **`S_NEXT`:** increments both x- and y- coordinates of the pixel (next pixel). I can increment coordinates in a separate always block, along with resetting x and y to zero if the reset button is pressed.
   * **`S_DONE`:** x- and y- coords hit the last possible number, all pixels drawn. The pixel position resets back to (0, 0) before the program terminates.
