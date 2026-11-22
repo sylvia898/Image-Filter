@@ -8,7 +8,9 @@ module filter_core (
     input [7:0] pix,
     input pix_valid, // pix is a real neighbour this clock
     input [3:0] k, // neighbour number 0..8 (4 = centre)
-    input [1:0] filter_sel, // 00 identity, 01 blur, 10 Sobel, 11 custom 
+    input [1:0] filter_sel, // 00 identity, 01 blur, 10 Sobel, 11 custom
+    input signed [7:0] custom_weight, // from weight_entry, passed to kernel_table
+    input [3:0] custom_shift,         // from weight_entry, passed to kernel_table
     output reg [7:0] result,
     output reg result_valid
 );
@@ -21,6 +23,8 @@ module filter_core (
     kernel_table kt (
         .filter_select(filter_sel),
         .k(k),
+        .custom_weight(custom_weight),
+        .custom_shift(custom_shift),
         .weight(weight),
         .weight_y(weight_y),
         .shift(shift)
