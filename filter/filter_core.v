@@ -8,7 +8,7 @@ module filter_core (
     input [7:0] pix,
     input pix_valid, // pix is a real neighbour this clock
     input [3:0] k, // neighbour number 0..8 (4 = centre)
-    input [1:0] filter_sel, // 00 identity, 01 blur, 10 Sobel, 11 custom
+    input [2:0] filter_sel, // 000 identity, 001 blur, 010 Sobel, 011 sharpen, 100 custom
     input signed [7:0] custom_weight, // from weight_entry, passed to kernel_table
     input [3:0] custom_shift,         // from weight_entry, passed to kernel_table
     output reg [7:0] result,
@@ -63,7 +63,7 @@ module filter_core (
             abs_gy = acc_gy; 
         
         // pick result for this filter
-        if (filter_sel == 2'b10) 
+        if (filter_sel == 3'b010) 
             total = abs_gx + abs_gy; // Sobel
         else 
             total = acc; 
