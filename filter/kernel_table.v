@@ -1,11 +1,5 @@
-// sw 00: filter identity: copies centre pixel so image looks unchanegd
-// switch 00 identity: The original picture, exactly as stored in ROM. 
-// switch 01 blur: The same picture, slightly softer and fuzzier. Sharp edges become gradual, fine detail and specks are smoothed out, and flat areas look the same
-// kernel_table: combinational lookup (no clock)
-// for selected filter and neighbour k, gives weight to multiply that neighbour by, and shift to apply to final sum 
-
 module kernel_table (
-    input [1:0] filter_select, // SW[1:0]: 00 identity, 01 blur, 10 Sobel (M2), 11 custom (M2)
+    input [2:0] filter_select, // SW[2:0]: 000 identity, 001 blur, 010 Sobel (M2), 011 sharpen (M2), 100 custom (M2)
     input [3:0] k,
     input signed [7:0] custom_weight, // from weight_entry: user's weight for square k
     input [3:0] custom_shift,         // from weight_entry: user's shift
@@ -21,14 +15,14 @@ module kernel_table (
 
         case (filter_select)
             // Identity: 0 0 0 / 0 1 0 / 0 0 0, weights sum to 1 -> shift 0
-            2'b00: begin
+            3'b000: begin
                 shift = 4'd0;
                 if (k == 4'd4)
                     weight = 8'sd1;
             end
 
             // Blur: 1 2 1 / 2 4 2 / 1 2 1, weights sum to 16 = 2^4 -> shift 4
-            2'b01: begin
+            3'b001: begin
                 shift = 4'd4; // shifts right by 4 bits which means divide by 16
                 case (k)
                     4'd0, 4'd2, 4'd6, 4'd8: weight = 8'sd1; // corners
@@ -38,8 +32,8 @@ module kernel_table (
                 endcase
             end
 
-            // 2'b10 Sobel and 2'b11 custom: Milestone 2 (defaults for now)
-            2'b10: begin 
+            // Sobel: has gx and gy
+            3'b010: begin 
                 shift = 4'd0; // bc sobel weights add up to 0 so nothing scaled up
                 case (k) // Gx: -1 0 1 / -2 0 2 / -1 0 1
                     4'd0, 4'd6: weight = -8'sd1; 
@@ -57,8 +51,18 @@ module kernel_table (
                 endcase
             end
 
+            // Sharpen: 0 -1 0 / -1 5 -1 / 0 -1 0, weights sum to 1 -> shift 0
+            3'b011: begin 
+                shift = 4'd0;
+                case (k)
+                    4'd1, 4'd3, 4'd5, 4'd7: weight = -8'sd1;
+                    4'd4: weight = 8'sd5; 
+                    default: weight = 8'sd0; 
+                endcase
+            end
+
             // Custom: whatever the user entered (stored in weight_entry)
-            2'b11: 
+            3'b100: 
             begin
                 weight = custom_weight;
                 shift  = custom_shift;
