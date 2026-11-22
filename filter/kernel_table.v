@@ -6,7 +6,9 @@
 
 module kernel_table (
     input [1:0] filter_select, // SW[1:0]: 00 identity, 01 blur, 10 Sobel (M2), 11 custom (M2)
-    input [3:0] k,          
+    input [3:0] k,
+    input signed [7:0] custom_weight, // from weight_entry: user's weight for square k
+    input [3:0] custom_shift,         // from weight_entry: user's shift
     output reg signed [7:0] weight,   // normal weight for filters & Gx
     output reg signed [7:0] weight_y, // Gy, only for Sobel
     output reg [3:0] shift       // arithmetic right shift for the sum
@@ -53,7 +55,14 @@ module kernel_table (
                     4'd7: weight_y = -8'sd2;
                     default: weight_y = 8'sd0; 
                 endcase
-            end 
+            end
+
+            // Custom: whatever the user entered (stored in weight_entry)
+            2'b11: 
+            begin
+                weight = custom_weight;
+                shift  = custom_shift;
+            end
 
             default: ;
         endcase
