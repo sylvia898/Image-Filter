@@ -1,0 +1,70 @@
+m255
+K4
+z2
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 dW:/eCE241/image-Filter/tb
+vfilter_core
+Z1 !s110 1795044251
+!i10b 1
+!s100 _0eI:PNIRRZQGgHMB8Q_31
+IMGN=_X8SBRc?0?iCOT07k3
+Z2 VDg1SIo80bB@j0V0VzS_@n1
+R0
+Z3 w1795043140
+8../filter/filter_core.v
+F../filter/filter_core.v
+L0 4
+Z4 OV;L;10.5b;63
+r1
+!s85 0
+31
+Z5 !s108 1795044248.000000
+Z6 !s107 tb_filter_core.v|../filter/filter_core.v|../filter/kernel_table.v|
+Z7 !s90 -reportprogress|300|../filter/kernel_table.v|../filter/filter_core.v|tb_filter_core.v|
+!i113 1
+Z8 tCvgOpt 0
+vkernel_table
+!s110 1795044250
+!i10b 1
+!s100 `]BS:K>o9;OH?=Nz]i`4D0
+IE_5:PbCN>@@984X5LEb9T1
+R2
+R0
+R3
+8../filter/kernel_table.v
+F../filter/kernel_table.v
+L0 7
+R4
+r1
+!s85 0
+31
+R5
+R6
+R7
+!i113 1
+R8
+vtb_filter_core
+R1
+!i10b 1
+!s100 =3QVaUcN;zHlg`EO`cODD1
+I;a?12=bLWNcH54@<z`jAg3
+R2
+R0
+w1795043699
+8tb_filter_core.v
+Ftb_filter_core.v
+L0 1
+R4
+r1
+!s85 0
+31
+R5
+R6
+R7
+!i113 1
+R8
