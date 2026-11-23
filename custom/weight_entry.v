@@ -6,23 +6,22 @@ module weight_entry (
     input start,                 
     input key_valid,              // from keyboard decoder: 1 for one clock per key press
     input [3:0] key_value,        // from keyboard decoder: 0..9 digit, 10 minus, 11 Enter
-    input [3:0] k,                // from filter_core: which weight it wants right now
+    input [3:0] k,                
     output reg signed [7:0] weight,
     output [3:0] shift,           
     output reg [3:0] entry,       // which entry is being typed: 0..8 weights, 9 shift
-    output reg signed [7:0] signed_number, // the number typed so far, with its sign (for the display)
-    output reg weights_changed    // 1 for one clock when the new kernel goes live
+    output reg signed [7:0] signed_number, 
+    output reg weights_changed    
 );
 
     // FSM states 
-    parameter S_IDLE = 3'b000; // waiting to start 
-    parameter S_TYPING = 3'b001; // building the number for weights
-    parameter S_STORE = 3'b010; // enter pressed, check range and save for new kernel
-    parameter S_NEXT = 3'b011; // move on to next nmber
+    parameter S_IDLE = 3'b000; 
+    parameter S_TYPING = 3'b001; 
+    parameter S_STORE = 3'b010; 
+    parameter S_NEXT = 3'b011; 
     parameter S_DONE = 3'b100; // all 10 entered (9 weights + 1 shift), kernel becomes active kernel 
 
-    // key_value meanings (agreed with the keyboard decoder)
-    // 0..9 are the digits themselves
+    // parallel to keyboard decoder
     parameter KEY_MINUS = 4'd10;
     parameter KEY_ENTER = 4'd11;
 
