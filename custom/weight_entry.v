@@ -7,10 +7,10 @@ module weight_entry (
     input key_valid,              // from keyboard decoder: 1 for one clock per key press
     input [3:0] key_value,        // from keyboard decoder: 0..9 digit, 10 minus, 11 Enter
     input [3:0] k,                // from filter_core: which weight it wants right now
-    output signed [7:0] weight,  
+    output reg signed [7:0] weight,
     output [3:0] shift,           
     output reg [3:0] entry,       // which entry is being typed: 0..8 weights, 9 shift
-    output signed [7:0] typed,    // the number typed so far (for the display)
+    output reg signed [7:0] signed_number, // the number typed so far, with its sign (for the display)
     output reg weights_changed    // 1 for one clock when the new kernel goes live
 );
 
@@ -41,11 +41,11 @@ module weight_entry (
 
     always @(*) begin
         if (entry == 4'd9) 
-            in range = !isnegative && (number <= 10'd15);
+            in_range = !is_negative && (number <= 10'd15);
         else if (is_negative)   
             in_range = (number <= 10'd128); // max - # is 128
         else 
-            in_range = (number <= 10'd127) // max # 127
+            in_range = (number <= 10'd127); // max # 127
     end 
 
     // if negative number, put - sign back
@@ -138,26 +138,27 @@ module weight_entry (
                     end
                 end
 
-                S_TYPING: begin 
-                    if (key_value <= 4'd9) begin // which digit key pressed
-                       // ex. 125 becomes 12 x 10 = 120 and then + 5 = 125
-                        if (number < 10'd100)
-                            number <= number * 10'd10 + key_value;
+                S_TYPING: begin
+                    if (key_valid) begin // only when a key was actually pressed
+                        if (key_value <= 4'd9) begin // which digit key pressed
+                            // ex. 125 becomes 12 x 10 = 120 and then + 5 = 125
+                            if (number < 10'd100)
+                                number <= number * 10'd10 + key_value;
                         end
-
                         else if (key_value == KEY_MINUS) // if - key pressed
-                            is_negative <= 1'b1; 
-                    end 
+                            is_negative <= 1'b1;
+                    end
                 end
 
-                S_STORE: begin 
-                    if (in_range) 
-                        new_kernel[entry] <= signed_number ;
-                    else begin 
-                        number <= 10'd0; // throw it away, type again 
-                        is_negative <= 1'b0; 
+                S_STORE: begin
+                    if (in_range)
+                        new_kernel[entry] <= signed_number;
+                    else begin
+                        number <= 10'd0; // throw it away, type again
+                        is_negative <= 1'b0;
                     end
-                
+                end
+
                 // goes to next entry and clears typed number so start fresh
                 S_NEXT: begin 
                     entry <= entry + 4'd1; 
@@ -165,14 +166,13 @@ module weight_entry (
                     is_negative <= 1'b0; 
                 end
 
-                S_DONE: begin 
-                for (index = 0; index < 10; index = index + 1) 
-                    active_kernel[index] <= new_kernel[index]; // active kernel is now the new kernel (custom weights)
-                    weights_changed <= 1'b1; 
+                S_DONE: begin
+                    for (index = 0; index < 10; index = index + 1)
+                        active_kernel[index] <= new_kernel[index]; // active kernel is now the new kernel (custom weights)
+                    weights_changed <= 1'b1;
                 end
 
-                default: ; // do nothing
-
+                default: ;
             endcase
         end
     end
@@ -186,7 +186,40 @@ module weight_entry (
         else 
             weight = 8'sd0; // everything else is 0 
     end 
-    
+
     // reads shift out of active_kernel and passes it to filter
     assign shift = active_kernel[9][3:0]; // 9 grabs shift, 3:0 is shift
-endmodule 
+endmodule
+
+
+// ------------------------------------------------------------------------
+
+// key_pulse: turns one press of a KEY button into a single one-clock pulse, which is what weight_entry's start input needs
+
+module key_pulse (
+    input clk,
+    input resetn,    
+    input key_n,      
+    output pulse      // 1 for exactly one clock when the key goes down
+);
+
+    // sync1 passes, sync2 cmpare, prev copies sync2 (already 1)
+    reg sync1, sync2, prev;
+
+    always @(posedge clk) begin
+        if (!resetn) begin // key is active low 
+            sync1 <= 1'b1;    // 1 = not pressed
+            sync2 <= 1'b1; 
+            prev  <= 1'b1; 
+        end
+        else begin
+            sync1 <= key_n; // takes in 0
+            sync2 <= sync1; // 1
+            prev  <= sync2; // 1
+        end
+    end
+
+    // pulse is 1 when last clock button up and now it's down
+    assign pulse = prev & ~sync2;
+
+endmodule
