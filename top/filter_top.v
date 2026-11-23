@@ -1,123 +1,140 @@
-// filter_top: reads the image from ROM, filters it, and shows it on VGA
-//
-// SW[1:0]: 00 identity, 01 blur, 10 Sobel, 11 custom
-// KEY[0]:  reset
-//
-// Uses image_rom and vga_adapter from the load_display file, so that file
-// (and the vga_adapter files) must be in the Quartus project too.
-//
-// The image is 24-bit colour, so there are 3 filter_cores: one each for
-// red, green and blue. They all get the same k, win_start and pix_valid.
-
-module filter_top (CLOCK_50, SW, KEY, VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK);
+module filter_top (CLOCK_50, SW, KEY, HEX0, HEX1, HEX2, HEX3, HEX4, HEX5, PS2_CLK, PS2_DAT,
+                   VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK);
 
     input CLOCK_50;
     input [9:0] SW;
     input [3:0] KEY;
+    output [6:0] HEX0, HEX1, HEX2, HEX3, HEX4, HEX5;
+    inout PS2_CLK, PS2_DAT;
     output [7:0] VGA_R, VGA_G, VGA_B;
     output VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK;
 
     wire resetn = KEY[0];
-    wire [1:0] filter_sel = SW[1:0];
+    wire [2:0] filter_sel = SW[2:0];
 
-    // reader <-> ROM <-> filters
-    wire [7:0] x;
-    wire [6:0] y;
+    // ---------------- wires between the parts ----------------
+
+    // neighbour_reader <-> ROM <-> filter_core_rgb <-> VGA
+    wire [7:0]  x;
+    wire [6:0]  y;
     wire [14:0] rom_address;
-    wire [23:0] colour;            // {red, green, blue} from the ROM
+    wire [23:0] colour;             // {red, green, blue} from the ROM
     wire win_start, pix_valid, plot;
-    wire [3:0] k;
+    wire [3:0]  k;                  // same k goes to filter_core_rgb AND weight_entry
+    wire [23:0] filtered_colour;    // {red, green, blue} after the filter
+    wire result_valid;
 
-    // filter results, one per colour
-    wire [7:0] red_out, green_out, blue_out;
-    wire red_valid, green_valid, blue_valid;
+    // keyboard -> weight_entry
+    wire key_valid;
+    wire [3:0] key_value;           // 0..9 digit, 10 minus, 11 Enter
 
-    // custom filter weights
+    // weight_entry -> filter, display and redraw
+    wire start_pulse;
     wire signed [7:0] custom_weight;
     wire [3:0] custom_shift;
+    wire [3:0] entry;
+    wire signed [7:0] signed_number;
+    wire weights_changed;
 
-    filter_reader FR (
+    // filter_select -> neighbour_reader
+    wire redraw;
+
+    // ---------------- image: read neighbours, filter, draw ----------------
+    neighbour_reader NR (
         .clock(CLOCK_50),
         .resetn(resetn),
-        .result_valid(red_valid),  // all 3 finish on the same clock, so any one works
+        .redraw(redraw),
+        .result_valid(result_valid),
         .x(x),
         .y(y),
         .rom_address(rom_address),
         .win_start(win_start),
         .pix_valid(pix_valid),
-        .k_out(k),
+        .k(k),
         .plot(plot)
     );
 
     image_rom IR (CLOCK_50, rom_address, colour);
 
-    filter_core FC_RED (
+    filter_core_rgb FC (
         .clk(CLOCK_50),
         .resetn(resetn),
         .win_start(win_start),
-        .pix(colour[23:16]),
+        .pix(colour),
         .pix_valid(pix_valid),
         .k(k),
         .filter_sel(filter_sel),
         .custom_weight(custom_weight),
         .custom_shift(custom_shift),
-        .result(red_out),
-        .result_valid(red_valid)
+        .result(filtered_colour),
+        .result_valid(result_valid)
     );
 
-    filter_core FC_GREEN (
-        .clk(CLOCK_50),
-        .resetn(resetn),
-        .win_start(win_start),
-        .pix(colour[15:8]),
-        .pix_valid(pix_valid),
-        .k(k),
-        .filter_sel(filter_sel),
-        .custom_weight(custom_weight),
-        .custom_shift(custom_shift),
-        .result(green_out),
-        .result_valid(green_valid)
-    );
-
-    filter_core FC_BLUE (
-        .clk(CLOCK_50),
-        .resetn(resetn),
-        .win_start(win_start),
-        .pix(colour[7:0]),
-        .pix_valid(pix_valid),
-        .k(k),
-        .filter_sel(filter_sel),
-        .custom_weight(custom_weight),
-        .custom_shift(custom_shift),
-        .result(blue_out),
-        .result_valid(blue_valid)
-    );
-
-    // custom weights: for now entered with SW[9:2] + KEY1 (save) / KEY2 (restart).
-    // When the keyboard part is ready, connect its value / Enter pulse / Esc pulse
-    // to .value / .save / .restart instead, and remove the two key_pulses.
-    wire save_pulse, restart_pulse;
-
-    key_pulse KP_SAVE    (.clk(CLOCK_50), .resetn(resetn), .key_n(KEY[1]), .pulse(save_pulse));
-    key_pulse KP_RESTART (.clk(CLOCK_50), .resetn(resetn), .key_n(KEY[2]), .pulse(restart_pulse));
-
-    weight_entry WE (
-        .clk(CLOCK_50),
-        .resetn(resetn),
-        .save(save_pulse),
-        .restart(restart_pulse),
-        .value(SW[9:2]),
-        .k(k),                     // same k as the filter_cores
-        .weight(custom_weight),
-        .shift(custom_shift),
-        .slot(),                   // not shown yet
-        .done()
-    );
-
-    vga_adapter VGA (resetn, CLOCK_50, {red_out, green_out, blue_out}, x, y, plot,
+    vga_adapter VGA (resetn, CLOCK_50, filtered_colour, x, y, plot,
                      VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK);
 
     defparam VGA.RESOLUTION  = "160x120";
     defparam VGA.COLOR_DEPTH = 24;
+
+    // ---------------- custom weights from the keyboard ----------------
+
+    // partner 1: one key_valid pulse per key press
+    keyboard_decoder KD (
+        .clk(CLOCK_50),
+        .resetn(resetn),
+        .ps2_clk(PS2_CLK),
+        .ps2_dat(PS2_DAT),
+        .key_valid(key_valid),
+        .key_value(key_value)
+    );
+
+    key_pulse KP_START (
+        .clk(CLOCK_50),
+        .resetn(resetn),
+        .key_n(KEY[1]),
+        .pulse(start_pulse)
+    );
+
+    weight_entry WE (
+        .clk(CLOCK_50),
+        .resetn(resetn),
+        .start(start_pulse),
+        .key_valid(key_valid),
+        .key_value(key_value),
+        .k(k),
+        .weight(custom_weight),
+        .shift(custom_shift),
+        .entry(entry),
+        .signed_number(signed_number),
+        .weights_changed(weights_changed)
+    );
+
+    // ---------------- redraw when something changes ----------------
+
+    // me: pulse redraw when SW[2:0] changes or a new custom kernel goes live
+    filter_select FS (
+        .clk(CLOCK_50),
+        .resetn(resetn),
+        .filter_sel(filter_sel),
+        .weights_changed(weights_changed),
+        .redraw(redraw)
+    );
+
+    // ---------------- HEX displays ----------------
+
+    signed_hex_display SD (
+        .value(signed_number),
+        .hex0(HEX0),
+        .hex1(HEX1),
+        .hex2(HEX2)
+    );
+
+    hex_decoder HD_ENTRY (
+        .digit(entry),
+        .seg(HEX5)
+    );
+
+    assign HEX3 = 7'b1111111;   // blank
+    assign HEX4 = 7'b1111111;   // blank
 
 endmodule
