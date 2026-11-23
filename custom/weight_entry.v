@@ -106,32 +106,87 @@ module weight_entry (
     integer index; // loop counter (0 to 9) for 10 kernel entries, reset clears them
     // DONE copies new_kernel -> active_kernel
 
+    always @(posedge clk) begin 
+        if (!resetn) begin 
+            state <= S_IDLE; 
+            entry <= 4'd0; // 4 bits (0 to 9)
+            number <= 10'd0; 
+            is_negative <= 1'b0; // 1 bit, starts as +
+            weights_changed <= 1'b0; 
 
+            // every custom filter starts as identity so image not all black 
 
+            // sets all 10 slots as 0
+            for (index = 0; index < 10; index = index + 1) begin 
+                active_kernel[index] <= 8'sd0; 
+                new_kernel[index] <= 8'sd0;
+            end 
+            active_kernel[4] <= 8'sd1; // sets centre as 1
+            new_kernel[4] <= 8'sd1; // sets centre as 1
+        end 
 
+        else begin 
+            state <= next_state; 
+            weights_changed <= 1'b0; 
 
+            case (state) 
+                S_IDLE: begin 
+                    if (start) begin 
+                        entry <= 4'd0; 
+                        number <= 10'd0; 
+                        is_negative <= 1'b0; 
+                    end
+                end
 
+                S_TYPING: begin 
+                    if (key_value <= 4'd9) begin // which digit key pressed
+                       // ex. 125 becomes 12 x 10 = 120 and then + 5 = 125
+                        if (number < 10'd100)
+                            number <= number * 10'd10 + key_value;
+                        end
 
+                        else if (key_value == KEY_MINUS) // if - key pressed
+                            is_negative <= 1'b1; 
+                    end 
+                end
 
+                S_STORE: begin 
+                    if (in_range) 
+                        new_kernel[entry] <= signed_number ;
+                    else begin 
+                        number <= 10'd0; // throw it away, type again 
+                        is_negative <= 1'b0; 
+                    end
+                
+                // goes to next entry and clears typed number so start fresh
+                S_NEXT: begin 
+                    entry <= entry + 4'd1; 
+                    number <= 10'd0; 
+                    is_negative <= 1'b0; 
+                end
 
+                S_DONE: begin 
+                for (index = 0; index < 10; index = index + 1) 
+                    active_kernel[index] <= new_kernel[index]; // active kernel is now the new kernel (custom weights)
+                    weights_changed <= 1'b1; 
+                end
 
+                default: ; // do nothing
 
+            endcase
+        end
+    end
 
+    // look up the weight filter_core is asking for 
+    // every clock, filter_core asks what weight for square k is and weight_entry passes weight
 
-
-
-
-
-
-
-
-
-
- // Two sets of registers:
-//   edit[0..9]   - what the user is typing in (9 weights + shift)
-//   active[0..9] - what the filter actually uses
-// The filter keeps using the old kernel until all 10 are entered, so a
-// half-typed kernel never shows on screen.
-
-
-endmodule
+    always @(*) begin 
+        if (k <= 4'd8) 
+            weight = active_kernel[k]; // squares 0 to 8
+        else 
+            weight = 8'sd0; // everything else is 0 
+    end 
+    
+    // reads shift out of active_kernel and passes it to filter
+    assign shift = active_kernel[9][3:0]; // 9 grabs shift, 3:0 is shift
+endmodule 
