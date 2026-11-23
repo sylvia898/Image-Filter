@@ -18,6 +18,8 @@ module tb_filter_core;
         .pix_valid(pix_valid),
         .k(k),
         .filter_sel(filter_sel),
+        .custom_weight(8'sd0),   // custom filter not tested here
+        .custom_shift(4'd0),
         .result(result),
         .result_valid(result_valid)
     );
