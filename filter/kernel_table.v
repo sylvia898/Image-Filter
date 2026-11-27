@@ -61,8 +61,42 @@ module kernel_table (
                 endcase
             end
 
-            // Custom: whatever the user entered (stored in weight_entry)
+            // emboss
             3'b100: 
+            begin  
+                shift = 4'd0; 
+                case (k) 
+                    4'd1, 4'd3: weight = -8'sd1; 
+                    4'd4, 4'd5, 4'd7: weight = 8'sd1; 
+                    4'd0: weight = -8'sd2; 
+                    4'd8: weight = 8'sd2; 
+                    4'd2, 4'd6: weight = 8'sd0; 
+                endcase
+            end
+
+            // horizontal motion blur 
+            3'b101: 
+            begin 
+                shift = 4'd2; 
+                case (k) 
+                    4'd0, 4'd1, 4'd2, 4'd6, 4'd7, 4'd8: weight = 8'sd0; 
+                    4'd3, 4'd5: weight = 8'sd1; 
+                    4'd4: weight = 8'sd2; 
+                endcase
+            end
+
+            // edge detection (laplacian)
+            3'b110: 
+            begin 
+                shift = 4'd0; 
+                case (k) 
+                    4'd0, 4'd1, 4'd2, 4'd3, 4'd5, 4'd6, 4'd7, 4'd8: weight = -8'sd1; 
+                    4'd4: weight = 8'sd8; 
+                endcase
+            end
+
+             // Custom: whatever the user entered (stored in weight_entry)
+            3'b111: 
             begin
                 weight = custom_weight;
                 shift  = custom_shift;
