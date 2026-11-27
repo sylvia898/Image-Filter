@@ -151,9 +151,9 @@ module weight_entry (
 
                 S_STORE: begin
                     if (in_range)
-                        new_kernel[entry] <= signed_number;
+                        new_kernel[entry] <= signed_number; // save into editing kernel
                     else begin
-                        number <= 10'd0; // throw it away, type again
+                        number <= 10'd0; // too big for 8 bit #: throw it away, type again
                         is_negative <= 1'b0;
                     end
                 end
